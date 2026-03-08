@@ -8,7 +8,7 @@ from flask_cors import CORS
 import requests, threading, time
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins="*", supports_credentials=False)
 
 captured_locations = []
 ngrok_url = None
