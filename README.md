@@ -38,7 +38,7 @@ GeoTrack/
 ### Step 1 — Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/GeoTrack.git
+git clone https://github.com/harsh160311/Geo-Track
 cd GeoTrack
 ```
 
@@ -67,117 +67,6 @@ The terminal will also print your **Ngrok public URL** automatically:
   NGROK URL   : https://xxxx-xx-xx-xxx.ngrok-free.app
   Fake Weather: https://xxxx-xx-xx-xxx.ngrok-free.app/weather
 =======================================================
-```
-
----
-
-## 🌍 Live Deployment Guide (Free — Render.com)
-
-> **Problem:** Flask backend needs a server to run. GitHub Pages only hosts static HTML — it cannot run Python.  
-> **Solution:** Deploy backend on **Render** (free) and update the frontend URL.
-
----
-
-### 🔧 Step 1 — Prepare Files for Deployment
-
-Create a `requirements.txt` file in your project folder:
-
-```
-flask
-flask-cors
-requests
-gunicorn
-```
-
-> ⚠️ Do **NOT** include `pyngrok` in requirements.txt for deployment — ngrok won't work on cloud servers. The server handles this gracefully already.
-
----
-
-### 🔧 Step 2 — Update `server.py` for Production
-
-Open `server.py` and make sure the last line looks like this (it already does):
-
-```python
-app.run(host="0.0.0.0", port=5000, debug=False)
-```
-
-Render uses **Gunicorn** to run the app, so this line won't even be used in production — but keep it for local use.
-
----
-
-### 🔧 Step 3 — Update Frontend URL in `index.html`
-
-Open `index.html` and find this line near the top of the `<script>` section:
-
-```javascript
-var SRV = 'http://localhost:5000';
-```
-
-Change it to your **Render backend URL** (you'll get this after deploying):
-
-```javascript
-var SRV = 'https://your-app-name.onrender.com';
-```
-
----
-
-### 🔧 Step 4 — Push to GitHub
-
-```bash
-git init
-git add .
-git commit -m "Initial commit — GeoTrack v2.0"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/GeoTrack.git
-git push -u origin main
-```
-
----
-
-### 🔧 Step 5 — Deploy Backend on Render
-
-1. Go to **[render.com](https://render.com)** → Sign up (free)
-2. Click **"New +"** → **"Web Service"**
-3. Connect your **GitHub account** → Select the **GeoTrack** repo
-4. Fill in the settings:
-
-| Setting | Value |
-|---|---|
-| **Name** | `geotrack-backend` (any name) |
-| **Runtime** | `Python 3` |
-| **Build Command** | `pip install -r requirements.txt` |
-| **Start Command** | `gunicorn server:app` |
-| **Instance Type** | `Free` |
-
-5. Click **"Create Web Service"**
-6. Wait ~2 minutes for the build to finish
-7. Copy your live URL — it looks like: `https://geotrack-backend.onrender.com`
-
----
-
-### 🔧 Step 6 — Deploy Frontend on GitHub Pages
-
-Since `index.html` is now pointing to your Render backend, you can host the frontend on GitHub Pages for free:
-
-1. Go to your GitHub repo → **Settings**
-2. Scroll to **"Pages"** section
-3. Under **Branch**, select `main` → folder `/root`
-4. Click **Save**
-5. Your frontend will be live at:  
-   `https://YOUR_USERNAME.github.io/GeoTrack/`
-
----
-
-## 🔑 Optional — Ngrok Auth Token (for local use)
-
-If ngrok shows errors locally, get a free token from [ngrok.com](https://ngrok.com) and add it in `server.py`:
-
-```python
-# Find this line in start_ngrok() function:
-# conf.get_default().auth_token = "YOUR_NGROK_TOKEN"
-
-# Remove the # and paste your token:
-conf.get_default().auth_token = "2abc123xyz_yourActualTokenHere"
 ```
 
 ---
@@ -228,7 +117,7 @@ This project is created **strictly for educational purposes**:
 
 ## 👩‍💻 Author
 
-**Saroj Rani** — Sirsa, Haryana, India  
+**Harsh** — Sirsa, Haryana, India  
 Built with ❤️ for ethical cybersecurity education.
 
 ---
