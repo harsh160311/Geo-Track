@@ -1241,7 +1241,7 @@ function showPage(id) {
     setTimeout(function(){ initCM(); if(capMap) capMap.invalidateSize(); }, 200);
     loadCaps();
     clearInterval(capTimer);
-    capTimer = setInterval(loadCaps, 5000);
+    capTimer = setInterval(loadCaps, 2000);
   } else {
     clearInterval(capTimer);
   }
