@@ -71,29 +71,7 @@ python server.py
 http://localhost:5000
 ```
 
----
-
-## ☁️ Deployment
-
-| Layer | Platform | URL |
-|---|---|---|
-| **Frontend** | Netlify | https://ge0track.netlify.app |
-| **Backend** | Railway | https://weatherforecast-live.up.railway.app |
-
-### Deploy Backend (Railway)
-
-1. Push code to GitHub
-2. Connect repo on [railway.app](https://railway.app)
-3. Set **Start Command:** `gunicorn server:app`
-4. Railway auto-deploys on every push ✅
-
-### Deploy Frontend (Netlify)
-
-1. Go to [netlify.app](https://netlify.app)
-2. Drag & drop `index.html`
-3. Done ✅
-
----
+--
 
 ## 📡 API Endpoints
 
