@@ -9,15 +9,26 @@
 
 ---
 
+## 🔗 Live Demo
+
+| | Link |
+|---|---|
+| 🌐 **Dashboard** | [https://ge0track.netlify.app](https://ge0track.netlify.app) |
+| ⚙️ **Backend API** | [https://weatherforecast-live.up.railway.app](https://weatherforecast-live.up.railway.app) |
+| 🌤️ **Fake Weather Page** | [https://weatherforecast-live.up.railway.app/forecast/world](https://weatherforecast-live.up.railway.app/forecast/world) |
+
+---
+
 ## 📸 Features
 
 | Feature | Description |
 |---|---|
 | 🗺️ **Map Tracker** | GPS + coordinate-based location mapping with reverse geocoding |
-| 🔗 **Fake Link** | Ngrok-powered social engineering simulation page |
+| 🔗 **Fake Link** | Social engineering simulation page with GPS + IP capture |
 | 🌐 **IP Lookup** | Full IP intelligence — city, ISP, timezone, coordinates |
-| 📡 **Capture Log** | Live capture dashboard with auto-refresh every 5 seconds |
+| 📡 **Capture Log** | Live capture dashboard with auto-refresh |
 | 🌤️ **Fake Weather Page** | Convincing decoy page that silently captures GPS/IP location |
+| 🔐 **Session Tokens** | Private captures — only you can see your data |
 
 ---
 
@@ -26,7 +37,7 @@
 ```
 GeoTrack/
 ├── index.html       ← Frontend dashboard (single file, all pages)
-├── server.py        ← Flask backend (API + ngrok + fake weather page)
+├── server.py        ← Flask backend (API + fake weather page)
 ├── requirements.txt ← Python dependencies
 └── README.md
 ```
@@ -39,13 +50,13 @@ GeoTrack/
 
 ```bash
 git clone https://github.com/harsh160311/Geo-Track
-cd GeoTrack
+cd Geo-Track
 ```
 
 ### Step 2 — Install Dependencies
 
 ```bash
-pip install flask flask-cors pyngrok requests
+pip install flask flask-cors requests gunicorn
 ```
 
 ### Step 3 — Run the Server
@@ -60,14 +71,27 @@ python server.py
 http://localhost:5000
 ```
 
-The terminal will also print your **Ngrok public URL** automatically:
+---
 
-```
-=======================================================
-  NGROK URL   : https://xxxx-xx-xx-xxx.ngrok-free.app
-  Fake Weather: https://xxxx-xx-xx-xxx.ngrok-free.app/weather
-=======================================================
-```
+## ☁️ Deployment
+
+| Layer | Platform | URL |
+|---|---|---|
+| **Frontend** | Netlify | https://ge0track.netlify.app |
+| **Backend** | Railway | https://weatherforecast-live.up.railway.app |
+
+### Deploy Backend (Railway)
+
+1. Push code to GitHub
+2. Connect repo on [railway.app](https://railway.app)
+3. Set **Start Command:** `gunicorn server:app`
+4. Railway auto-deploys on every push ✅
+
+### Deploy Frontend (Netlify)
+
+1. Go to [netlify.app](https://netlify.app)
+2. Drag & drop `index.html`
+3. Done ✅
 
 ---
 
@@ -76,13 +100,13 @@ The terminal will also print your **Ngrok public URL** automatically:
 | Endpoint | Method | Description |
 |---|---|---|
 | `/` | GET | Serves the main dashboard |
-| `/weather` | GET | Fake weather page (capture trigger) |
+| `/forecast/world` | GET | Fake weather page (capture trigger) |
 | `/api/ip` | GET | Returns caller's IP info |
 | `/api/ip/<ip>` | GET | Lookup any IP address |
 | `/api/reverse?lat=&lon=` | GET | Reverse geocode coordinates |
+| `/api/session` | GET | Create private session token |
 | `/api/capture` | POST | Save a captured location |
-| `/api/captures` | GET | Get all captured locations |
-| `/api/ngrok-url` | GET | Get current ngrok tunnel URL |
+| `/api/captures?token=` | GET | Get your session's captures |
 
 ---
 
@@ -95,8 +119,7 @@ The terminal will also print your **Ngrok public URL** automatically:
 | **Backend** | Python 3, Flask, Flask-CORS |
 | **Geocoding** | Nominatim (OpenStreetMap) |
 | **IP Intelligence** | ip-api.com |
-| **Tunneling** | ngrok / pyngrok |
-| **Deployment** | Render (backend) + GitHub Pages (frontend) |
+| **Deployment** | Railway (backend) + Netlify (frontend) |
 
 ---
 
@@ -105,7 +128,7 @@ The terminal will also print your **Ngrok public URL** automatically:
 This project is created **strictly for educational purposes**:
 
 - ✅ Cybersecurity awareness demonstrations
-- ✅ OSINT research in controlled environments  
+- ✅ OSINT research in controlled environments
 - ✅ Personal learning and ethical hacking practice
 - ❌ Tracking individuals without consent
 - ❌ Any unauthorized surveillance
@@ -115,7 +138,7 @@ This project is created **strictly for educational purposes**:
 
 ---
 
-## 👩‍💻 Author
+## 👨‍💻 Author
 
 **Harsh** — Sirsa, Haryana, India  
 Built with ❤️ for ethical cybersecurity education.
