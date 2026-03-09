@@ -1550,9 +1550,23 @@ function loadCaps() {
         var lon  = d.lon || d.lng;
         var card = document.createElement('div');
         card.className = 'capcard ' + (gps ? '' : 'ip-m');
+
+        // UTC timestamp ko local time mein convert karo
+        var timeStr = '—';
+        if(d.client_time){
+          timeStr = d.client_time;
+        } else if(d.timestamp){
+          try {
+            var utc = new Date(d.timestamp.replace(' ','T') + 'Z');
+            timeStr = utc.toLocaleString('en-IN', {
+              day:'2-digit', month:'short', year:'numeric',
+              hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true
+            });
+          } catch(e){ timeStr = d.timestamp; }
+        }
         card.innerHTML =
           '<div class="capnum">CAPTURE #' + idx + ' — <span style="color:' + (gps?'var(--green)':'var(--gold)') + '">' + (gps?'GPS':'IP-BASED') + '</span></div>' +
-          '<div class="cr"><span class="ck">TIME</span><span class="cv2">'    + (d.timestamp   || '—') + '</span></div>' +
+          '<div class="cr"><span class="ck">TIME</span><span class="cv2">'    + timeStr + '</span></div>' +
           (d.road    ? '<div class="cr"><span class="ck">ROAD</span><span class="cv2">'    + d.road    + '</span></div>' : '') +
           '<div class="cr"><span class="ck">CITY</span><span class="cv2 ' + (gps?'gps':'ipm') + '">' + (d.city    || '—') + '</span></div>' +
           '<div class="cr"><span class="ck">STATE</span><span class="cv2">'   + (d.state    || '—') + '</span></div>' +
