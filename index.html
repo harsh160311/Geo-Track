@@ -319,6 +319,9 @@ select option{background:var(--bg2)}
    MAP COMPONENTS
 ════════════════════════════════════════════ */
 .mapbox{border:1px solid var(--border);overflow:hidden;position:relative;border-radius:3px}
+.map-toggle{position:absolute;top:10px;right:10px;z-index:1000;display:flex;gap:4px;background:rgba(0,0,0,.75);border:1px solid var(--border);border-radius:3px;padding:3px;backdrop-filter:blur(6px)}
+.map-toggle button{font-family:'Share Tech Mono',monospace;font-size:.62rem;font-weight:700;letter-spacing:.08em;padding:4px 10px;border:1px solid transparent;border-radius:2px;cursor:pointer;transition:all .2s;background:transparent;color:var(--dim)}
+.map-toggle button.active{background:var(--accent);color:#000;border-color:var(--accent);box-shadow:0 0 8px rgba(0,245,255,.5)}
 .lmap{width:100%;background:#0a0f1e}
 .map-main{height:clamp(320px,50vw,520px)}
 .map-ip{height:clamp(300px,45vw,480px)}
@@ -899,6 +902,7 @@ textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,245,255,.1
       </div>
     </div>
     <div class="mapbox">
+      <div class="map-toggle"><button class="active" onclick="setMapView('main',0)">NORMAL</button><button onclick="setMapView('main',1)">SATELLITE</button></div>
       <div id="main-map" class="lmap map-main"></div>
       <div class="mbadge"><span class="dot c"></span>LIVE MAP</div>
     </div>
@@ -952,6 +956,7 @@ textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,245,255,.1
     <div class="cap-grid">
       <div class="cap-list" id="cap-list"></div>
       <div style="position:relative;border:1px solid var(--border);border-radius:3px;overflow:hidden">
+        <div class="map-toggle"><button class="active" onclick="setMapView('cap',0)">NORMAL</button><button onclick="setMapView('cap',1)">SATELLITE</button></div>
         <div id="cap-map" class="lmap map-cap"></div>
         <div class="mbadge"><span class="dot g"></span>CAPTURED LOCATIONS</div>
       </div>
@@ -989,6 +994,7 @@ textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,245,255,.1
       </div>
     </div>
     <div class="mapbox">
+      <div class="map-toggle"><button class="active" onclick="setMapView('ip',0)">NORMAL</button><button onclick="setMapView('ip',1)">SATELLITE</button></div>
       <div id="ip-map" class="lmap map-ip"></div>
       <div class="mbadge"><span class="dot c"></span>IP MAP</div>
     </div>
@@ -1182,20 +1188,49 @@ document.getElementById('hamburger').addEventListener('click', function(){
 });
 
 /* ── MAP INIT ──────────────────────── */
+/* ── Safe invalidate — zoom/center preserve karta hai ── */
+function safeInvalidate(map) {
+  if (!map) return;
+  var c = map.getCenter(), z = map.getZoom();
+  map.invalidateSize({ animate:false });
+  map.setView(c, z, { animate:false });
+}
+/* ── ResizeObserver — container resize pe auto fix ── */
+function watchResize(el, map) {
+  if (!el || !map || !window.ResizeObserver) return;
+  new ResizeObserver(function(){ safeInvalidate(map); }).observe(el);
+}
+/* ── Satellite / Normal toggle ── */
+function setMapView(which, mode) {
+  var maps = { main:mainMap, ip:ipMap, cap:capMap };
+  var m = maps[which];
+  if (!m || !window._tiles || !window._tiles[which]) return;
+  m.removeLayer(window._tiles[which]);
+  window._tiles[which] = (mode===1 ? window._satTile() : window._osmTile()).addTo(m);
+  var btns = document.querySelectorAll('[onclick*="setMapView(\'' + which + '\'"]');
+  btns.forEach(function(b,i){ b.classList.toggle('active', i===mode); });
+}
+
 function initMM() {
-  if (mainMap) { mainMap.invalidateSize(); return; }
-  mainMap = L.map('main-map').setView([20.59, 78.96], 5);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OSM' }).addTo(mainMap);
+  if (mainMap) { safeInvalidate(mainMap); return; }
+  var osmTile = function(){ return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ attribution:'© OpenStreetMap', maxZoom:19 }); };
+  var satTile = function(){ return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{ attribution:'© Esri Satellite', maxZoom:20, maxNativeZoom:19 }); };
+  window._osmTile = osmTile; window._satTile = satTile; window._tiles = {};
+  mainMap = L.map('main-map', { maxZoom:19, zoomSnap:0.5 }).setView([20.59, 78.96], 5);
+  window._tiles.main = osmTile().addTo(mainMap);
+  watchResize(document.getElementById('main-map'), mainMap);
 }
 function initIM() {
-  if (ipMap) { ipMap.invalidateSize(); return; }
-  ipMap = L.map('ip-map').setView([20.59, 78.96], 4);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OSM' }).addTo(ipMap);
+  if (ipMap) { safeInvalidate(ipMap); return; }
+  ipMap = L.map('ip-map', { maxZoom:19, zoomSnap:0.5 }).setView([20.59, 78.96], 4);
+  window._tiles.ip = window._osmTile().addTo(ipMap);
+  watchResize(document.getElementById('ip-map'), ipMap);
 }
 function initCM() {
-  if (capMap) { capMap.invalidateSize(); return; }
-  capMap = L.map('cap-map').setView([20.59, 78.96], 4);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OSM' }).addTo(capMap);
+  if (capMap) { safeInvalidate(capMap); return; }
+  capMap = L.map('cap-map', { maxZoom:19, zoomSnap:0.5 }).setView([20.59, 78.96], 4);
+  window._tiles.cap = window._osmTile().addTo(capMap);
+  watchResize(document.getElementById('cap-map'), capMap);
 }
 
 function plotMain(lat, lng, lbl) {
@@ -1204,8 +1239,7 @@ function plotMain(lat, lng, lbl) {
   mainM = L.marker([lat, lng]).addTo(mainMap)
     .bindPopup('<b>' + lbl + '</b><br>' + parseFloat(lat).toFixed(6) + ', ' + parseFloat(lng).toFixed(6))
     .openPopup();
-  mainMap.setView([lat, lng], 16);
-  mainMap.invalidateSize();
+  mainMap.setView([lat, lng], 16, { animate:true });
   document.getElementById('scoords').textContent = parseFloat(lat).toFixed(5) + ', ' + parseFloat(lng).toFixed(5);
 }
 
@@ -1235,10 +1269,10 @@ function showPage(id) {
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  if (id === 'tracker')  { setTimeout(function(){ initMM(); if(mainMap) mainMap.invalidateSize(); }, 200); }
-  if (id === 'ip')       { setTimeout(function(){ initIM(); if(ipMap)   ipMap.invalidateSize();   }, 200); }
+  if (id === 'tracker')  { setTimeout(function(){ initMM(); safeInvalidate(mainMap); }, 200); }
+  if (id === 'ip')       { setTimeout(function(){ initIM(); safeInvalidate(ipMap);   }, 200); }
   if (id === 'fakelink') {
-    setTimeout(function(){ initCM(); if(capMap) capMap.invalidateSize(); }, 200);
+    setTimeout(function(){ initCM(); safeInvalidate(capMap); }, 200);
     loadCaps();
     clearInterval(capTimer);
     capTimer = setInterval(loadCaps, 2000);
@@ -1382,7 +1416,7 @@ function doIP(ip) {
           .bindPopup('<b>' + (d.city||'?') + ', ' + (d.country||d.country_name||'?') + '</b><br>IP: ' + (d.ip||d.query||'?') + '<br>ISP: ' + (d.isp||'?'))
           .openPopup();
         ipMap.setView([lat, lon], 12);
-        ipMap.invalidateSize();
+        setTimeout(function(){ safeInvalidate(ipMap); }, 100);
         toast('✓ Located: ' + (d.city||'?') + ', ' + (d.country||d.country_name||'?'));
       }
     })
@@ -1598,8 +1632,8 @@ function loadCaps() {
         bounds.push([lat, lon]);
       });
 
-      if      (bounds.length === 1) { capMap.setView(bounds[0], 15); capMap.invalidateSize(); }
-      else if (bounds.length  >  1) { capMap.fitBounds(bounds, { padding:[30,30] }); capMap.invalidateSize(); }
+      if      (bounds.length === 1) { capMap.setView(bounds[0], 15); setTimeout(function(){ safeInvalidate(capMap); }, 100); }
+      else if (bounds.length  >  1) { capMap.fitBounds(bounds, { padding:[30,30] }); setTimeout(function(){ safeInvalidate(capMap); }, 100); }
     })
     .catch(function(){});
 }
