@@ -1213,22 +1213,22 @@ function setMapView(which, mode) {
 
 function initMM() {
   if (mainMap) { safeInvalidate(mainMap); return; }
-  var osmTile = function(){ return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ attribution:'© OpenStreetMap', maxZoom:19 }); };
-  var satTile = function(){ return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{ attribution:'© Esri Satellite', maxZoom:20, maxNativeZoom:19 }); };
+  var osmTile = function(){ return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ attribution:'© OpenStreetMap', maxZoom:19, maxNativeZoom:19 }); };
+  var satTile = function(){ return L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',{ attribution:'© Google Satellite', maxZoom:21, maxNativeZoom:21, subdomains:'0123' }); };
   window._osmTile = osmTile; window._satTile = satTile; window._tiles = {};
-  mainMap = L.map('main-map', { maxZoom:19, zoomSnap:0.5 }).setView([20.59, 78.96], 5);
+  mainMap = L.map('main-map', { maxZoom:21, zoomSnap:0.5 }).setView([20.59, 78.96], 5);
   window._tiles.main = osmTile().addTo(mainMap);
   watchResize(document.getElementById('main-map'), mainMap);
 }
 function initIM() {
   if (ipMap) { safeInvalidate(ipMap); return; }
-  ipMap = L.map('ip-map', { maxZoom:19, zoomSnap:0.5 }).setView([20.59, 78.96], 4);
+  ipMap = L.map('ip-map', { maxZoom:21, zoomSnap:0.5 }).setView([20.59, 78.96], 4);
   window._tiles.ip = window._osmTile().addTo(ipMap);
   watchResize(document.getElementById('ip-map'), ipMap);
 }
 function initCM() {
   if (capMap) { safeInvalidate(capMap); return; }
-  capMap = L.map('cap-map', { maxZoom:19, zoomSnap:0.5 }).setView([20.59, 78.96], 4);
+  capMap = L.map('cap-map', { maxZoom:21, zoomSnap:0.5 }).setView([20.59, 78.96], 4);
   window._tiles.cap = window._osmTile().addTo(capMap);
   watchResize(document.getElementById('cap-map'), capMap);
 }
