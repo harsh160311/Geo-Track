@@ -1,6 +1,6 @@
 # 🌐 GeoTrack — Location Intelligence Platform
 
-![GeoTrack](https://img.shields.io/badge/GeoTrack-v2.0-00f5ff?style=for-the-badge&logo=googlemaps)
+![GeoTrack](https://img.shields.io/badge/GeoTrack-00f5ff?style=for-the-badge&logo=googlemaps)
 ![Python](https://img.shields.io/badge/Python-3.8+-3776AB?style=for-the-badge&logo=python)
 ![Flask](https://img.shields.io/badge/Flask-Backend-000000?style=for-the-badge&logo=flask)
 ![Leaflet](https://img.shields.io/badge/Leaflet.js-Maps-199900?style=for-the-badge&logo=leaflet)
@@ -158,9 +158,9 @@ This project is created **strictly for educational purposes**:
 
 ## 👩‍💻 Author
 
-**Saroj Rani** — Sirsa, Haryana, India  
+**Harsh** — Sirsa, Haryana, India  
 Built with ❤️ for ethical cybersecurity education.
 
 ---
 
-*GeoTrack v2.0 © 2026 — Educational Use Only*
+*GeoTrack © 2026 — Educational Use Only*
